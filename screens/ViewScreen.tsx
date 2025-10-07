@@ -1,268 +1,226 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  TextInput,
   ScrollView,
+  Image,
+  Alert,
+  StyleSheet,
+  Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
-const leads = [
-  {
-    id: '1',
-    date: '18-07-2024',
-    customerName: 'Pragada Krishna',
-    email: 'Krishnapragada37@gmail.com',
-    mobile: '7981852212',
-    executive: 'Ramana',
-    model: 'APACHE RTR 160 2V RM DRUM',
-    branch: 'HEADOFFICE',
-    enquiryType: 'DIRECT',
-    leadState: 'FOLLOW UP',
-    address: 'Payakarao peta',
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    status: 'CLOSE',
-    leadType: 'MANUAL',
-  },
-  {
-    id: '2',
-    date: '19-07-2024',
-    customerName: 'Satish',
-    email: 'satish@gmail.com',
-    mobile: '7894561236',
-    executive: 'Jack Nicholson',
-    model: 'RTR 310 BASIC YL',
-    branch: 'HEADOFFICE',
-    enquiryType: 'WALK-IN',
-    leadState: 'ENQUIRY',
-    address: 'Vizag',
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    status: 'OPEN',
-    leadType: 'MANUAL',
-  },
-   {
-    id: '3',
-    date: '19-07-2024',
-    customerName: 'Satish',
-    email: 'satish@gmail.com',
-    mobile: '7894561236',
-    executive: 'Jack Nicholson',
-    model: 'RTR 310 BASIC YL',
-    branch: 'HEADOFFICE',
-    enquiryType: 'WALK-IN',
-    leadState: 'ENQUIRY',
-    address: 'Vizag',
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    status: 'OPEN',
-    leadType: 'MANUAL',
-  },
-   {
-    id: '4',
-    date: '19-07-2024',
-    customerName: 'Satish',
-    email: 'satish@gmail.com',
-    mobile: '7894561236',
-    executive: 'Jack Nicholson',
-    model: 'RTR 310 BASIC YL',
-    branch: 'HEADOFFICE',
-    enquiryType: 'WALK-IN',
-    leadState: 'BOOKING',
-    address: 'Vizag',
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    status: 'OPEN',
-    leadType: 'MANUAL',
-  },
-   {
-    id: '5',
-    date: '19-07-2024',
-    customerName: 'Satish',
-    email: 'satish@gmail.com',
-    mobile: '7894561236',
-    executive: 'Jack Nicholson',
-    model: 'RTR 310 BASIC YL',
-    branch: 'HEADOFFICE',
-    enquiryType: 'WALK-IN',
-    leadState: 'SALE',
-    address: 'Vizag',
-    state: 'Andhra Pradesh',
-    district: 'Visakhapatnam',
-    status: 'OPEN',
-    leadType: 'MANUAL',
-  },
-];
-
-const getStatusStyle = (leadState: string) => {
-  switch (leadState.toUpperCase()) {
-    case 'ENQUIRY':
-      return { backgroundColor: '#DBEAFE', color: '#1D4ED8', borderColor: '#3B82F6' };
-    case 'FOLLOW UP':
-      return { backgroundColor: '#FEF9C3', color: '#92400E', borderColor: '#FACC15' };
-    case 'BOOKING':
-      return { backgroundColor: '#DCFCE7', color: '#166534', borderColor: '#e0da67ff' };
-    case 'SALE':
-      return { backgroundColor: '#FECACA', color: '#B91C1C', borderColor: '#05e66eff' };
-    default:
-      return { backgroundColor: '#E0E7FF', color: '#3730A3', borderColor: '#555556ff' };
-  }
+type TankerForm = {
+  id: string;
+  tankerNumber: string;
+  ownerName: string;
+  tankerCapacity: string;
+  dateTime: Date;
+  receiptNumber: string;
+  voucherAmount: string;
+  receiptDate: Date;
+  meterStart: string;
+  meterEnd: string;
+  branch: string;
+  voucherPhoto?: string;
+  tankerPhoto?: string;
 };
 
-const ViewLeadsScreen = () => {
-  const navigation = useNavigation();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
+const defaultVoucher = 'https://via.placeholder.com/400x300.png?text=No+Voucher';
+const defaultTanker = 'https://via.placeholder.com/400x300.png?text=No+Tanker';
 
-  const openModal = (item: any) => {
-    setSelectedLead(item);
-    setModalVisible(true);
+const sampleData: TankerForm[] = [
+  { id: '1', tankerNumber: 'AP31XY1001', ownerName: 'Suresh', tankerCapacity: '5000', dateTime: new Date(), receiptNumber: 'RV1001', voucherAmount: '12000', receiptDate: new Date(), meterStart: '100', meterEnd: '500', branch: 'Branch A' },
+  { id: '2', tankerNumber: 'AP31XY1002', ownerName: 'Ramesh', tankerCapacity: '5200', dateTime: new Date(), receiptNumber: 'RV1002', voucherAmount: '15000', receiptDate: new Date(), meterStart: '200', meterEnd: '600', branch: 'Branch B' },
+  { id: '3', tankerNumber: 'AP31XY1003', ownerName: 'Mahesh', tankerCapacity: '4800', dateTime: new Date(), receiptNumber: 'RV1003', voucherAmount: '10000', receiptDate: new Date(), meterStart: '150', meterEnd: '550', branch: 'Branch A' },
+  { id: '4', tankerNumber: 'AP31XY1004', ownerName: 'Sathish', tankerCapacity: '5100', dateTime: new Date(), receiptNumber: 'RV1004', voucherAmount: '13000', receiptDate: new Date(), meterStart: '120', meterEnd: '520', branch: 'Branch B' },
+  { id: '5', tankerNumber: 'AP31XY1005', ownerName: 'Prakash', tankerCapacity: '5300', dateTime: new Date(), receiptNumber: 'RV1005', voucherAmount: '14000', receiptDate: new Date(), meterStart: '180', meterEnd: '580', branch: 'Branch C' },
+  { id: '6', tankerNumber: 'AP31XY1006', ownerName: 'Karthik', tankerCapacity: '5000', dateTime: new Date(), receiptNumber: 'RV1006', voucherAmount: '12500', receiptDate: new Date(), meterStart: '130', meterEnd: '530', branch: 'Branch C' },
+  { id: '7', tankerNumber: 'AP31XY1007', ownerName: 'Vignesh', tankerCapacity: '4950', dateTime: new Date(), receiptNumber: 'RV1007', voucherAmount: '11000', receiptDate: new Date(), meterStart: '140', meterEnd: '540', branch: 'Branch A' },
+  { id: '8', tankerNumber: 'AP31XY1008', ownerName: 'Ajith', tankerCapacity: '5050', dateTime: new Date(), receiptNumber: 'RV1008', voucherAmount: '13500', receiptDate: new Date(), meterStart: '160', meterEnd: '560', branch: 'Branch B' },
+  { id: '9', tankerNumber: 'AP31XY1009', ownerName: 'Manoj', tankerCapacity: '5200', dateTime: new Date(), receiptNumber: 'RV1009', voucherAmount: '14500', receiptDate: new Date(), meterStart: '170', meterEnd: '570', branch: 'Branch C' },
+  { id: '10', tankerNumber: 'AP31XY1010', ownerName: 'Ravi', tankerCapacity: '5000', dateTime: new Date(), receiptNumber: 'RV1010', voucherAmount: '12500', receiptDate: new Date(), meterStart: '150', meterEnd: '550', branch: 'Branch A' },
+];
+
+const PAGE_SIZE = 5;
+
+const TankerCardScreen = () => {
+  const [role, setRole] = useState<string | null>(null);
+  const [branch, setBranch] = useState<string | null>(null);
+  const [data, setData] = useState<TankerForm[]>(sampleData);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<TankerForm | null>(null);
+  const [filterDate, setFilterDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  useEffect(() => {
+    const getRoleAndBranch = async () => {
+      const storedRole = await AsyncStorage.getItem('userRole');
+      const storedBranch = await AsyncStorage.getItem('branchName');
+      setRole(storedRole || 'branch');
+      setBranch(storedBranch || 'Branch A');
+    };
+    getRoleAndBranch();
+  }, []);
+
+  const openViewModal = (item: TankerForm) => {
+    setSelectedRecord(item);
+    setViewModalVisible(true);
   };
 
-  const handleUpdate = () => {
-    setModalVisible(false);
+  const openEditAlert = (item: TankerForm) => {
+    Alert.alert('Edit', `Editing tanker: ${item.tankerNumber}`);
   };
 
-  const renderItem = ({ item }: { item: any }) => {
-    const statusStyle = getStatusStyle(item.leadState);
+  const filteredData = data
+    .filter((item) => filterDate ? item.dateTime.toDateString() === filterDate.toDateString() : true)
+    .filter((item) => role === 'admin' ? true : item.branch === branch);
 
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-    <Text style={styles.name}>{item.customerName}</Text>
-    <TouchableOpacity onPress={() => openModal(item)} style={{ marginLeft: 8 }}>
-      <Ionicons name="create-outline" size={18} color="#2563EB" />
-    </TouchableOpacity>
-  </View>
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
-  {['FOLLOW UP', 'ENQUIRY'].includes(item.leadState.toUpperCase()) ? (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('FollowUpScreen' as never)}
-      style={[
-        styles.statusTag,
-        {
-          backgroundColor: statusStyle.backgroundColor,
-          borderColor: statusStyle.borderColor,
-        },
-      ]}
-    >
-      <Text style={[styles.statusText, { color: statusStyle.color }]}>
-        {item.leadState}
-      </Text>
-    </TouchableOpacity>
-  ) : (
-    <View
-      style={[
-        styles.statusTag,
-        {
-          backgroundColor: statusStyle.backgroundColor,
-          borderColor: statusStyle.borderColor,
-        },
-      ]}
-    >
-      <Text style={[styles.statusText, { color: statusStyle.color }]}>
-        {item.leadState}
-      </Text>
+  const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+
+  const renderCard = ({ item }: { item: TankerForm }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.tankerLabel}>
+          <Text style={styles.bold}>Tanker No:</Text> {item.tankerNumber}
+        </Text>
+
+        <View style={styles.iconRow}>
+          {/* Eye icon */}
+          <TouchableOpacity onPress={() => openViewModal(item)}>
+            <Ionicons name="eye-outline" size={20} color="#1E90FF" style={{ marginRight: 10 }} />
+          </TouchableOpacity>
+
+          {/* Pencil icon visible to all users */}
+          <TouchableOpacity onPress={() => openEditAlert(item)}>
+            <Ionicons name="create-outline" size={20} color="orange" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.cardDetails}>
+        <Text style={styles.cardLabel}><Text style={styles.bold}>Owner:</Text> {item.ownerName}</Text>
+        <Text style={styles.cardLabel}><Text style={styles.bold}>Capacity:</Text> {item.tankerCapacity} KL</Text>
+        <Text style={styles.cardLabel}><Text style={styles.bold}>Voucher:</Text> ₹{item.voucherAmount}</Text>
+        <Text style={styles.cardLabel}><Text style={styles.bold}>Date & Time:</Text> {item.dateTime.toLocaleString()}</Text>
+        {role === 'admin' && (
+          <Text style={styles.cardLabel}><Text style={styles.bold}>Branch:</Text> {item.branch}</Text>
+        )}
+      </View>
     </View>
-  )}
-</View>
+  );
 
-
-
-        <Text style={styles.text}>Date: {item.date}</Text>
-        <Text style={styles.text}>Mobile: {item.mobile}</Text>
-        <Text style={styles.text}>Executive: {item.executive}</Text>
-        <Text style={styles.text}>Model: {item.model}</Text>
-        <Text style={styles.text}>Status: {item.status}</Text>
-
+  if (!role) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
       </View>
     );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Date Filter */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setShowDatePicker(true)}>
+          <Ionicons name="calendar-outline" size={20} color="#fff" />
+          <Text style={styles.filterText}>{filterDate ? filterDate.toDateString() : 'Filter by Date'}</Text>
+        </TouchableOpacity>
+        {filterDate && (
+          <TouchableOpacity onPress={() => setFilterDate(null)}>
+            <Ionicons name="close-circle" size={24} color="red" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={filterDate || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) setFilterDate(selectedDate);
+          }}
+        />
+      )}
+
       <FlatList
-        data={leads}
+        data={paginatedData}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingTop: 20 }}
+        renderItem={renderCard}
+        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>No tanker records found</Text>}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {selectedLead && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+      <View style={styles.pagination}>
+        <TouchableOpacity
+          disabled={currentPage === 1}
+          onPress={() => setCurrentPage((p) => p - 1)}
+          style={[styles.pageBtn, currentPage === 1 && styles.disabledBtn]}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContentWrapper}>
-              <ScrollView
-  style={styles.modalContent}
-  contentContainerStyle={{ paddingBottom: 16 }}
->
-  <Text style={styles.modalTitle}>Edit Lead Details</Text>
+          <Text style={styles.pageText}>Prev</Text>
+        </TouchableOpacity>
+        <Text style={styles.pageText}>{currentPage} / {totalPages || 1}</Text>
+        <TouchableOpacity
+          disabled={currentPage === totalPages}
+          onPress={() => setCurrentPage((p) => p + 1)}
+          style={[styles.pageBtn, currentPage === totalPages && styles.disabledBtn]}
+        >
+          <Text style={styles.pageText}>Next</Text>
+        </TouchableOpacity>
+      </View>
 
-  <Text style={styles.label}>Enquiry Date</Text>
-  <TextInput style={styles.input} value={selectedLead.date} />
+      {selectedRecord && (
+        <Modal
+          visible={viewModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setViewModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.viewModalContent}>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setViewModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalTitle}>Tanker Details</Text>
+                {[
+                  ['Tanker No', selectedRecord.tankerNumber],
+                  ['Owner Name', selectedRecord.ownerName],
+                  ['Capacity', selectedRecord.tankerCapacity + ' KL'],
+                  ['Date & Time', selectedRecord.dateTime.toLocaleString()],
+                  ['Receipt No', selectedRecord.receiptNumber],
+                  ['Voucher Amount', selectedRecord.voucherAmount],
+                  ['Receipt Date', selectedRecord.receiptDate.toDateString()],
+                  ['Meter Start', selectedRecord.meterStart],
+                  ['Meter End', selectedRecord.meterEnd],
+                  ['Branch', selectedRecord.branch],
+                ].map(([label, value], i) => (
+                  <View key={i} style={styles.detailRow}>
+                    <Text style={styles.bold}>{label}:</Text>
+                    <Text>{value}</Text>
+                  </View>
+                ))}
 
-  <Text style={styles.label}>Branch Name</Text>
-  <TextInput style={styles.input} value={selectedLead.branch} />
+                <Text style={[styles.modalText, { marginTop: 12 }]}>Voucher Photo:</Text>
+                <Image source={{ uri: selectedRecord.voucherPhoto || defaultVoucher }} style={styles.photoLarge} resizeMode="cover" />
 
-  <Text style={styles.label}>Enquiry Type</Text>
-  <TextInput style={styles.input} value={selectedLead.enquiryType} />
-
-  <Text style={styles.label}>Lead State</Text>
-  <TextInput style={styles.input} value={selectedLead.leadState} />
-
-  <Text style={styles.label}>Executive Name</Text>
-  <TextInput style={styles.input} value={selectedLead.executive} />
-
-  <Text style={styles.label}>Model Name</Text>
-  <TextInput style={styles.input} value={selectedLead.model} />
-
-  <Text style={styles.label}>Customer Name</Text>
-  <TextInput style={styles.input} value={selectedLead.customerName} />
-
-  <Text style={styles.label}>Email ID</Text>
-  <TextInput style={styles.input} value={selectedLead.email} />
-
-  <Text style={styles.label}>Mobile Number</Text>
-  <TextInput style={styles.input} value={selectedLead.mobile} />
-
-  <Text style={styles.label}>Address</Text>
-  <TextInput style={styles.input} value={selectedLead.address} />
-
-  <Text style={styles.label}>State Name</Text>
-  <TextInput style={styles.input} value={selectedLead.state} />
-
-  <Text style={styles.label}>District Name</Text>
-  <TextInput style={styles.input} value={selectedLead.district} />
-
-  <Text style={styles.label}>Lead Status</Text>
-  <TextInput style={styles.input} value={selectedLead.status} />
-
-  <Text style={styles.label}>Lead Type</Text>
-  <TextInput style={styles.input} value={selectedLead.leadType} />
-</ScrollView>
-
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate}>
-                  <Text style={styles.updateText}>Update</Text>
-                </TouchableOpacity>
-              </View>
+                <Text style={[styles.modalText, { marginTop: 12 }]}>Tanker Photo:</Text>
+                <Image source={{ uri: selectedRecord.tankerPhoto || defaultTanker }} style={styles.photoLarge} resizeMode="cover" />
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -271,127 +229,29 @@ const ViewLeadsScreen = () => {
   );
 };
 
-export default ViewLeadsScreen;
+export default TankerCardScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusTag: {
-    borderWidth: 1,
-    borderRadius: 50,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  text: {
-    fontSize: 15,
-    color: '#374151',
-  },
-  editButton: {
-    marginTop: 10,
-    backgroundColor: '#2563EB',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  editText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  modalContentWrapper: {
-    backgroundColor: '#fff',
-    margin: 20,
-    borderRadius: 12,
-    maxHeight: '90%',
-    flex: 1,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  modalContent: {
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderTopWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
-  },
-  cancelBtn: {
-    backgroundColor: '#E5E7EB',
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-    marginRight: 10,
-  },
-  updateBtn: {
-    backgroundColor: '#2563EB',
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-  },
-  cancelText: {
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-  updateText: {
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  label: {
-  fontWeight: '600',
-  marginBottom: 4,
-  marginTop: 10,
-  color: '#374151',
-  fontSize: 14,
-},  
+  container: { flex: 1, padding: 10, backgroundColor: '#f7f9fc' },
+  filterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  filterBtn: { flexDirection: 'row', backgroundColor: '#1E90FF', paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center', gap: 6 },
+  filterText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  card: { backgroundColor: '#fff', borderRadius: 10, padding: 10, marginBottom: 8, elevation: 2 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tankerLabel: { fontSize: 15, color: '#333', fontWeight: '600' },
+  iconRow: { flexDirection: 'row', alignItems: 'center' },
+  cardDetails: { marginTop: 6 },
+  cardLabel: { fontSize: 14, color: '#555', marginBottom: 2 },
+  bold: { fontWeight: '700', color: '#1E1E1E' },
+  pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+  pageBtn: { padding: 6, backgroundColor: '#1E90FF', borderRadius: 6 },
+  disabledBtn: { backgroundColor: '#a0a0a0' },
+  pageText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+  viewModalContent: { width: '90%', maxHeight: '85%', backgroundColor: '#fff', padding: 20, borderRadius: 15, elevation: 10 },
+  closeButton: { position: 'absolute', top: 10, right: 10, padding: 5 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  modalText: { fontSize: 16, marginBottom: 8 },
+  photoLarge: { width: '100%', height: 200, borderRadius: 10, marginTop: 6 },
 });

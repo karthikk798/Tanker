@@ -2,138 +2,214 @@ import React, { useState } from 'react';
 import {
   ScrollView,
   View,
-  Platform,
   Text,
   TextInput,
   Button,
   StyleSheet,
+  Platform,
+  Image,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { launchCamera, CameraOptions } from 'react-native-image-picker';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
-
-  const dropdownData = {
-    enquiryTypes: ['DIRECT', 'WALK_IN', 'WEBSITE', 'TELEIN', 'CAMPAIGN', 'OTHERS'],
-    leadStates: ['ENQUIRY', 'FOLLOW UP', 'BOOKING', 'SALE'],
-    executives: ['Robert De Niro', 'Jack Nicholson', 'Marlon Brando', 'Denzel Washington', 'Katharine Hepburn', 'Ramana', 'RajKumar', 'James Arthur'],
-    models: ['APACHE RTR 160 4V - RM DISC', 'APACHE RTR 160 2V RM DRUM', 'RTR 310 BASIC YL', 'XL 100 HD ITS BSVI', 'JUPITER 125 BSVI', 'JUPITER BSVI - SMW', 'JUPITER BSVI-AOL', 'SCOOTY ZEST MATTE SERIES'],
-    states: ['Arunachal Pradesh', 'Assam', 'Bihar', 'Uttar Pradesh', 'Andhra Pradesh'],
-    districts: ['Visakhapatnam', 'East Godavari', 'Guntur', 'Changlang', 'Kamle'],
-    winTypes: ['HOT', 'COLD', 'MEDIUM'],
-  };
-
   const [form, setForm] = useState({
-    branch: 'HEADOFFICE',
-    enquiryType: '',
-    leadState: '',
-    executive: '',
-    model: '',
-    customer: '',
-    email: '',
-    mobile: '',
-    address: '',
-    state: '',
-    district: '',
-    winType: '',
+    tankerNumber: '',
+    ownerName: '',
+    tankerCapacity: '',
+    dateTime: new Date(),
+    receiptNumber: '',
+    voucherAmount: '',
+    receiptDate: new Date(),
+    meterStart: '',
+    meterEnd: '',
+    voucherPhoto: '',
+    tankerPhoto: '',
   });
 
-  const handleChange = (field: string, value: string) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    if (value.trim() !== '') setErrors(prev => ({ ...prev, [field]: false }));
+  const [showDatePicker, setShowDatePicker] = useState({
+    receiptDate: false,
+  });
+
+  const handleChange = (key: string, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleDateChange = (key: string, selectedDate?: Date) => {
+    setShowDatePicker(prev => ({ ...prev, [key]: false }));
+    if (selectedDate) setForm(prev => ({ ...prev, [key]: selectedDate }));
+  };
+
+  const handleCapturePhoto = async (key: 'voucherPhoto' | 'tankerPhoto') => {
+    const options: CameraOptions = {
+      mediaType: 'photo',
+      quality: 0.5,
+      saveToPhotos: true,
+    };
+
+    try {
+      const result = await launchCamera(options);
+      if (result.didCancel) {
+        console.log('User cancelled camera');
+      } else if (result.errorCode) {
+        console.log('Camera Error: ', result.errorMessage);
+        Alert.alert('Camera Error', result.errorMessage || 'Unknown error');
+      } else if (result.assets && result.assets.length > 0) {
+        handleChange(key, result.assets[0].uri || '');
+      }
+    } catch (error) {
+      console.log('Camera Exception: ', error);
+      Alert.alert('Camera Error', 'Unable to open camera');
+    }
   };
 
   const handleSubmit = () => {
-    const newErrors: Record<string, boolean> = {};
-    Object.entries(form).forEach(([key, value]) => {
-      if (!value || value.trim() === '') newErrors[key] = true;
-    });
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      console.log('Submitted:', form);
+    const requiredFields = [
+      'tankerNumber',
+      'ownerName',
+      'tankerCapacity',
+      'receiptNumber',
+      'voucherAmount',
+      'meterStart',
+      'meterEnd',
+      'voucherPhoto',
+      'tankerPhoto',
+    ];
+
+    const missing = requiredFields.filter(key => !form[key as keyof typeof form]);
+    if (missing.length > 0) {
+      Alert.alert('Validation', 'Please fill all required fields.');
+      return;
     }
+
+    console.log('Form submitted:', form);
+    Alert.alert('Success', 'Form submitted successfully!');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Enquiry Date */}
+      {/** Tanker Vehicle Number */}
       <View style={styles.field}>
-        <Text style={styles.label}>Enquiry Date *</Text>
-        <View style={styles.input}>
-          <Button title={date.toDateString()} onPress={() => setShowDatePicker(true)} />
-        </View>
-        {showDatePicker && (
+        <Text style={styles.label}>Tanker Vehicle Number *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Vehicle Number"
+          value={form.tankerNumber}
+          onChangeText={text => handleChange('tankerNumber', text)}
+        />
+      </View>
+
+      {/** Owner Name */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Name of the Owner *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Owner Name"
+          value={form.ownerName}
+          onChangeText={text => handleChange('ownerName', text)}
+        />
+      </View>
+
+      {/** Tanker Capacity */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Tanker Capacity *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Tanker Capacity"
+          value={form.tankerCapacity}
+          onChangeText={text => handleChange('tankerCapacity', text)}
+          keyboardType="numeric"
+        />
+      </View>
+
+      {/** Date & Time (display only, no edit) */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Date & Time *</Text>
+        <Text style={styles.readOnly}>{form.dateTime.toLocaleString()}</Text>
+      </View>
+
+      {/** Receipt Voucher Number */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Receipt Voucher Number *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Receipt Voucher Number"
+          value={form.receiptNumber}
+          onChangeText={text => handleChange('receiptNumber', text)}
+        />
+      </View>
+
+      {/** Voucher Amount */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Voucher Amount *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Amount"
+          value={form.voucherAmount}
+          onChangeText={text => handleChange('voucherAmount', text)}
+          keyboardType="numeric"
+        />
+      </View>
+
+      {/** Receipt Voucher Date */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Receipt Voucher Date *</Text>
+        <Button title={form.receiptDate.toDateString()} onPress={() => setShowDatePicker(prev => ({ ...prev, receiptDate: true }))} />
+        {showDatePicker.receiptDate && (
           <DateTimePicker
-            value={date}
+            value={form.receiptDate}
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) setDate(selectedDate);
-            }}
+            onChange={(event, selectedDate) => handleDateChange('receiptDate', selectedDate)}
           />
         )}
       </View>
 
-      {/* All other fields */}
-      {[
-        { label: 'Branch Name *', key: 'branch', editable: false },
-        { label: 'Customer Name *', key: 'customer' },
-        { label: 'Email ID *', key: 'email', keyboardType: 'email-address' },
-        { label: 'Mobile Number *', key: 'mobile', keyboardType: 'phone-pad' },
-        { label: 'Address *', key: 'address', multiline: true },
-      ].map(({ label, key, editable = true, keyboardType, multiline = false }) => (
-        <View style={styles.field} key={key}>
-          <Text style={styles.label}>{label}</Text>
-          <TextInput
-            placeholder={label}
-            value={(form as any)[key]}
-            onChangeText={(text) => handleChange(key, text)}
-            editable={editable}
-            multiline={multiline}
-            keyboardType={keyboardType}
-            style={styles.input}
-          />
-        </View>
-      ))}
+      {/** Meter Readings */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Meter Starting Reading *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Starting Reading"
+          value={form.meterStart}
+          onChangeText={text => handleChange('meterStart', text)}
+          keyboardType="numeric"
+        />
+      </View>
 
-      {/* Dropdown Pickers */}
-      {[
-        { label: 'Enquiry Type *', key: 'enquiryType', items: dropdownData.enquiryTypes },
-        { label: 'Lead State *', key: 'leadState', items: dropdownData.leadStates },
-        { label: 'Executive Name *', key: 'executive', items: dropdownData.executives },
-        { label: 'Model Name *', key: 'model', items: dropdownData.models },
-        { label: 'State Name *', key: 'state', items: dropdownData.states },
-        { label: 'District Name *', key: 'district', items: dropdownData.districts },
-        { label: 'Win Type *', key: 'winType', items: dropdownData.winTypes },
-      ].map(({ label, key, items }) => (
-        <View style={styles.field} key={key}>
-          <Text style={styles.label}>{label}</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={(form as any)[key]}
-              onValueChange={(value) => handleChange(key, value)}
-              style={styles.picker}
-            >
-              <Picker.Item label={`Select ${label}`} value="" />
-              {items.map((item: string) => (
-                <Picker.Item key={item} label={item} value={item} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-      ))}
+      <View style={styles.field}>
+        <Text style={styles.label}>Meter Ending Reading *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Ending Reading"
+          value={form.meterEnd}
+          onChangeText={text => handleChange('meterEnd', text)}
+          keyboardType="numeric"
+        />
+      </View>
 
+      {/** Voucher Photo */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Voucher Photo *</Text>
+        <Button title="Capture Photo" onPress={() => handleCapturePhoto('voucherPhoto')} />
+        {form.voucherPhoto ? (
+          <Image source={{ uri: form.voucherPhoto }} style={styles.photo} />
+        ) : null}
+      </View>
+
+      {/** Tanker Photo */}
+      <View style={styles.field}>
+        <Text style={styles.label}>Tanker Photo *</Text>
+        <Button title="Capture Photo" onPress={() => handleCapturePhoto('tankerPhoto')} />
+        {form.tankerPhoto ? (
+          <Image source={{ uri: form.tankerPhoto }} style={styles.photo} />
+        ) : null}
+      </View>
+
+      {/** Submit Button */}
       <View style={styles.buttonWrapper}>
-        <Button title="Save" onPress={handleSubmit} />
+        <Button title="Submit" onPress={handleSubmit} />
       </View>
     </ScrollView>
   );
@@ -158,23 +234,26 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 6,
     paddingHorizontal: 10,
-    justifyContent: 'center',
     backgroundColor: 'white',
   },
-  pickerWrapper: {
+  readOnly: {
+    height: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 6,
-    overflow: 'hidden',
-    backgroundColor: 'white',
-  },
-  picker: {
-    height: 52,
-    width: '100%',
+    backgroundColor: '#e6e6e6',
+    color: '#555',
   },
   buttonWrapper: {
     marginTop: 24,
-    alignSelf: 'stretch',
+  },
+  photo: {
+    marginTop: 8,
+    width: '100%',
+    height: 200,
+    borderRadius: 6,
   },
 });
 
