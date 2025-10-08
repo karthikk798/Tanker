@@ -30,19 +30,24 @@ const DashboardScreen = () => {
 
   const TOTAL_BRANCHES = 2;
 
+  // Determine if current user is branch user
+  const isBranchUser = role?.toLowerCase().includes('branch');
+
   // Load role and persistent work data
   useEffect(() => {
     const loadData = async () => {
       const storedRole = await AsyncStorage.getItem('userRole');
       setRole(storedRole);
 
-      const storedName = await AsyncStorage.getItem('employeeName');
-      const storedImage = await AsyncStorage.getItem('tankerImage');
-      const storedStartTime = await AsyncStorage.getItem('startTime');
+      if (storedRole && storedRole.toLowerCase().includes('branch')) {
+        const storedName = await AsyncStorage.getItem('employeeName');
+        const storedImage = await AsyncStorage.getItem('tankerImage');
+        const storedStartTime = await AsyncStorage.getItem('startTime');
 
-      if (storedName) setEmployeeName(storedName);
-      if (storedImage) setTankerImage(storedImage);
-      if (storedStartTime) setStartTime(storedStartTime);
+        if (storedName) setEmployeeName(storedName);
+        if (storedImage) setTankerImage(storedImage);
+        if (storedStartTime) setStartTime(storedStartTime);
+      }
     };
     loadData();
   }, []);
@@ -130,7 +135,7 @@ const DashboardScreen = () => {
   };
 
   const cards = [
-    ...(role !== 'admin'
+    ...(isBranchUser
       ? [
           {
             id: '1',
@@ -139,7 +144,7 @@ const DashboardScreen = () => {
           },
         ]
       : []),
-    ...(role === 'admin'
+    ...(!isBranchUser
       ? [
           {
             id: '2',
@@ -165,6 +170,8 @@ const DashboardScreen = () => {
 
   const renderCard = ({ item }: any) => {
     if (item.type === 'employee') {
+      if (!isBranchUser) return null; // Safety check
+
       return (
         <View style={styles.employeeCard}>
           {tankerImage ? (
@@ -218,7 +225,7 @@ const DashboardScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        Welcome {role === 'admin' ? 'Admin' : 'Karthikk'}
+        Welcome {role === 'adminA' || role === 'adminB' || role === 'SuperAdmin' ? 'Admin' : 'Branch User'}
       </Text>
       <FlatList
         data={cards}
