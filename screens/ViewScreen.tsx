@@ -8,9 +8,9 @@ import {
   Modal,
   ScrollView,
   Image,
-  Alert,
-  StyleSheet,
+  TextInput,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,7 +27,6 @@ type TankerForm = {
   receiptDate: Date;
   meterStart: string;
   meterEnd: string;
-  branch: string;
   voucherPhoto?: string;
   tankerPhoto?: string;
 };
@@ -56,9 +55,11 @@ const TankerCardScreen = () => {
   const [data, setData] = useState<TankerForm[]>(sampleData);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<TankerForm | null>(null);
   const [filterDate, setFilterDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showEditDatePicker, setShowEditDatePicker] = useState<'dateTime' | 'receiptDate' | null>(null);
 
   useEffect(() => {
     const getRoleAndBranch = async () => {
@@ -75,8 +76,18 @@ const TankerCardScreen = () => {
     setViewModalVisible(true);
   };
 
-  const openEditAlert = (item: TankerForm) => {
-    Alert.alert('Edit', `Editing tanker: ${item.tankerNumber}`);
+  const openEditModal = (item: TankerForm) => {
+    setSelectedRecord(item);
+    setEditModalVisible(true);
+  };
+
+  const saveEdit = () => {
+    if (selectedRecord) {
+      setData((prev) =>
+        prev.map((t) => (t.id === selectedRecord.id ? selectedRecord : t))
+      );
+    }
+    setEditModalVisible(false);
   };
 
   const filteredData = data
@@ -96,15 +107,11 @@ const TankerCardScreen = () => {
         <Text style={styles.tankerLabel}>
           <Text style={styles.bold}>Tanker No:</Text> {item.tankerNumber}
         </Text>
-
         <View style={styles.iconRow}>
-          {/* Eye icon */}
           <TouchableOpacity onPress={() => openViewModal(item)}>
             <Ionicons name="eye-outline" size={20} color="#1E90FF" style={{ marginRight: 10 }} />
           </TouchableOpacity>
-
-          {/* Pencil icon visible to all users */}
-          <TouchableOpacity onPress={() => openEditAlert(item)}>
+          <TouchableOpacity onPress={() => openEditModal(item)}>
             <Ionicons name="create-outline" size={20} color="orange" />
           </TouchableOpacity>
         </View>
@@ -122,13 +129,7 @@ const TankerCardScreen = () => {
     </View>
   );
 
-  if (!role) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  if (!role) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -138,11 +139,7 @@ const TankerCardScreen = () => {
           <Ionicons name="calendar-outline" size={20} color="#fff" />
           <Text style={styles.filterText}>{filterDate ? filterDate.toDateString() : 'Filter by Date'}</Text>
         </TouchableOpacity>
-        {filterDate && (
-          <TouchableOpacity onPress={() => setFilterDate(null)}>
-            <Ionicons name="close-circle" size={24} color="red" />
-          </TouchableOpacity>
-        )}
+        {filterDate && <TouchableOpacity onPress={() => setFilterDate(null)}><Ionicons name="close-circle" size={24} color="red" /></TouchableOpacity>}
       </View>
 
       {showDatePicker && (
@@ -165,31 +162,20 @@ const TankerCardScreen = () => {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
+      {/* Pagination */}
       <View style={styles.pagination}>
-        <TouchableOpacity
-          disabled={currentPage === 1}
-          onPress={() => setCurrentPage((p) => p - 1)}
-          style={[styles.pageBtn, currentPage === 1 && styles.disabledBtn]}
-        >
+        <TouchableOpacity disabled={currentPage === 1} onPress={() => setCurrentPage((p) => p - 1)} style={[styles.pageBtn, currentPage === 1 && styles.disabledBtn]}>
           <Text style={styles.pageText}>Prev</Text>
         </TouchableOpacity>
         <Text style={styles.pageText}>{currentPage} / {totalPages || 1}</Text>
-        <TouchableOpacity
-          disabled={currentPage === totalPages}
-          onPress={() => setCurrentPage((p) => p + 1)}
-          style={[styles.pageBtn, currentPage === totalPages && styles.disabledBtn]}
-        >
+        <TouchableOpacity disabled={currentPage === totalPages} onPress={() => setCurrentPage((p) => p + 1)} style={[styles.pageBtn, currentPage === totalPages && styles.disabledBtn]}>
           <Text style={styles.pageText}>Next</Text>
         </TouchableOpacity>
       </View>
 
+      {/* View Modal */}
       {selectedRecord && (
-        <Modal
-          visible={viewModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setViewModalVisible(false)}
-        >
+        <Modal visible={viewModalVisible} transparent animationType="fade" onRequestClose={() => setViewModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.viewModalContent}>
               <TouchableOpacity style={styles.closeButton} onPress={() => setViewModalVisible(false)}>
@@ -214,12 +200,77 @@ const TankerCardScreen = () => {
                     <Text>{value}</Text>
                   </View>
                 ))}
-
                 <Text style={[styles.modalText, { marginTop: 12 }]}>Voucher Photo:</Text>
                 <Image source={{ uri: selectedRecord.voucherPhoto || defaultVoucher }} style={styles.photoLarge} resizeMode="cover" />
-
                 <Text style={[styles.modalText, { marginTop: 12 }]}>Tanker Photo:</Text>
                 <Image source={{ uri: selectedRecord.tankerPhoto || defaultTanker }} style={styles.photoLarge} resizeMode="cover" />
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Edit Modal */}
+      {selectedRecord && (
+        <Modal visible={editModalVisible} transparent animationType="fade" onRequestClose={() => setEditModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.viewModalContent}>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalTitle}>Edit Tanker</Text>
+
+                {[
+                  { label: 'Tanker No', key: 'tankerNumber' },
+                  { label: 'Owner Name', key: 'ownerName' },
+                  { label: 'Capacity', key: 'tankerCapacity' },
+                  { label: 'Receipt No', key: 'receiptNumber' },
+                  { label: 'Voucher Amount', key: 'voucherAmount' },
+                  { label: 'Meter Start', key: 'meterStart' },
+                  { label: 'Meter End', key: 'meterEnd' },
+                  { label: 'Branch', key: 'branch' },
+                ].map(({ label, key }) => (
+                  <View key={key} style={{ marginBottom: 12 }}>
+                    <Text style={styles.bold}>{label}:</Text>
+                    <TextInput
+                      style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 6, marginTop: 4 }}
+                      value={(selectedRecord as any)[key]}
+                      onChangeText={(text) => setSelectedRecord((prev) => prev ? { ...prev, [key]: text } : prev)}
+                    />
+                  </View>
+                ))}
+
+                {/* Date Pickers */}
+                <TouchableOpacity onPress={() => setShowEditDatePicker('dateTime')} style={{ marginBottom: 12 }}>
+                  <Text style={styles.bold}>Date & Time:</Text>
+                  <Text>{selectedRecord.dateTime.toLocaleString()}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowEditDatePicker('receiptDate')} style={{ marginBottom: 12 }}>
+                  <Text style={styles.bold}>Receipt Date:</Text>
+                  <Text>{selectedRecord.receiptDate.toDateString()}</Text>
+                </TouchableOpacity>
+
+                {showEditDatePicker && selectedRecord && (
+                  <DateTimePicker
+                    value={showEditDatePicker === 'dateTime' ? selectedRecord.dateTime : selectedRecord.receiptDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={(event, selectedDate) => {
+                      setShowEditDatePicker(null);
+                      if (!selectedDate) return;
+                      setSelectedRecord((prev) => prev ? {
+                        ...prev,
+                        dateTime: showEditDatePicker === 'dateTime' ? selectedDate : prev.dateTime,
+                        receiptDate: showEditDatePicker === 'receiptDate' ? selectedDate : prev.receiptDate
+                      } : prev);
+                    }}
+                  />
+                )}
+
+                <TouchableOpacity onPress={saveEdit} style={{ backgroundColor: '#1E90FF', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 }}>
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
+                </TouchableOpacity>
               </ScrollView>
             </View>
           </View>

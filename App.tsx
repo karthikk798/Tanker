@@ -12,6 +12,7 @@ import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import ViewScreen from './screens/ViewScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import BunkerDetails from './screens/BunkerDetails'; // New screen
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,16 +25,20 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs({ navigation }: any) {
   const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getRole = async () => {
       const storedRole = await AsyncStorage.getItem('userRole');
       setRole(storedRole);
+      setLoading(false);
     };
     getRole();
   }, []);
 
-  if (!role) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+
+  const normalizedRole = role?.toLowerCase();
 
   return (
     <Tab.Navigator
@@ -47,11 +52,13 @@ function MainTabs({ navigation }: any) {
           let iconName: string;
           if (route.name === 'Dashboard') iconName = 'home-outline';
           else if (route.name === 'View') iconName = 'reader-outline';
+          else if (route.name === 'BunkerDetails') iconName = 'boat-outline';
           else iconName = 'ellipse-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
+      {/* Dashboard Tab */}
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
@@ -70,10 +77,12 @@ function MainTabs({ navigation }: any) {
           ),
         }}
       />
+
+      {/* View Tab */}
       <Tab.Screen
         name="View"
         component={ViewScreen}
-        options={({ navigation }) => ({
+        options={{
           title: 'Tanker Records',
           headerTitleAlign: 'center',
           headerRight: () => (
@@ -84,8 +93,20 @@ function MainTabs({ navigation }: any) {
               <Ionicons name="add" size={20} color="#0c63e7" />
             </TouchableOpacity>
           ),
-        })}
+        }}
       />
+
+      {/* Admin/Superadmin Only */}
+      {(normalizedRole === 'superadmin' || normalizedRole.startsWith('admin')) && (
+        <Tab.Screen
+          name="BunkerDetails"
+          component={BunkerDetails}
+          options={{
+            headerTitleAlign: 'center',
+            title: 'Bunker Details',
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 }

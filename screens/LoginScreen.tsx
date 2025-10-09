@@ -5,14 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const USERS = [
   { username: 'superadmin', password: '1234', role: 'SuperAdmin' },
-  { username: 'admin', password: '1234', role: 'adminA' },
-  { username: 'admin', password: '1234', role: 'adminB' },
+  { username: 'admin1', password: '1234', role: 'adminA' },
+  { username: 'admin2', password: '1234', role: 'adminB' },
   { username: 'branch1', password: '1234', role: 'branchA' },
   { username: 'branch2', password: '1234', role: 'branchB' },
 ];
 
 const LoginScreen = ({ navigation }: any) => {
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('admin1');
   const [password, setPassword] = useState('1234');
   const [errorMsg, setErrorMsg] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
